@@ -687,6 +687,13 @@
                     </tr>
                 </tbody>
             </table>
+
+            <h3 style="margin: 25px 0 10px; font-size: 16px;">💰 结算指引</h3>
+            <div id="settlementGuide">
+                <div class="empty-tip" style="padding: 20px;">
+                    <p>添加费用后将显示结算指引</p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1168,6 +1175,127 @@
                     </tr>
                 `;
             }).join('');
+            
+            // 更新结算指引
+            updateSettlementGuide(stats);
+        }
+        
+        function updateSettlementGuide(stats) {
+            const container = document.getElementById('settlementGuide');
+            
+            if (persons.length === 0 || expenses.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-tip" style="padding: 20px;">
+                        <p>添加费用后将显示结算指引</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 计算谁该给谁钱
+            const settlements = calculateSettlements(stats);
+            
+            if (settlements.length === 0) {
+                container.innerHTML = `
+                    <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; text-align: center;">
+                        🎉 所有人已结清，无需转账！
+                    </div>
+                `;
+                return;
+            }
+            
+            // 按付款人分组
+            const grouped = {};
+            settlements.forEach(s => {
+                if (!grouped[s.from]) grouped[s.from] = [];
+                grouped[s.from].push(s);
+            });
+            
+            container.innerHTML = `
+                <div style="background: #f8f9fa; border-radius: 12px; padding: 15px;">
+                    ${Object.entries(grouped).map(([from, items]) => `
+                        <div style="margin-bottom: 15px; padding: 12px; background: white; border-radius: 8px;">
+                            <div style="font-weight: 600; color: #333; margin-bottom: 8px; font-size: 14px;">
+                                👤 ${from} 需要支付：
+                            </div>
+                            <div style="padding-left: 10px;">
+                                ${items.map(s => `
+                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f0f0f0;">
+                                        <span style="color: #666;">→ 给 ${s.to}</span>
+                                        <span style="font-weight: 700; color: #ff4757; font-size: 16px;">¥${s.amount.toFixed(2)}</span>
+                                    </div>
+                                `).join('')}
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; margin-top: 5px; border-top: 2px solid #e0e0e0;">
+                                    <span style="color: #333; font-weight: 600;">合计支付</span>
+                                    <span style="font-weight: 700; color: #ff4757; font-size: 18px;">¥${items.reduce((sum, i) => sum + i.amount, 0).toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                    
+                    <div style="margin-top: 15px; padding: 12px; background: #e8f4fd; border-radius: 8px;">
+                        <div style="font-weight: 600; color: #333; margin-bottom: 10px; font-size: 14px;">📋 转账清单（简洁版）</div>
+                        <table style="width: 100%; font-size: 13px;">
+                            <thead>
+                                <tr style="color: #666;">
+                                    <th style="text-align: left; padding: 5px;">付款人</th>
+                                    <th style="text-align: left; padding: 5px;">收款人</th>
+                                    <th style="text-align: right; padding: 5px;">金额</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${settlements.map(s => `
+                                    <tr>
+                                        <td style="padding: 5px;">${s.from}</td>
+                                        <td style="padding: 5px;">${s.to}</td>
+                                        <td style="padding: 5px; text-align: right; font-weight: 600; color: #ff4757;">¥${s.amount.toFixed(2)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function calculateSettlements(stats) {
+            const settlements = [];
+            
+            // 计算每个人的净额（正数应收，负数应付）
+            const balances = {};
+            persons.forEach(name => {
+                balances[name] = (stats[name]?.paid || 0) - (stats[name]?.shouldPay || 0);
+            });
+            
+            // 找出应付的人（余额为负）和应收的人（余额为正）
+            const debtors = persons.filter(p => balances[p] < -0.01).sort((a, b) => balances[a] - balances[b]);
+            const creditors = persons.filter(p => balances[p] > 0.01).sort((a, b) => balances[b] - balances[a]);
+            
+            // 进行结算配对
+            let i = 0, j = 0;
+            while (i < debtors.length && j < creditors.length) {
+                const debtor = debtors[i];
+                const creditor = creditors[j];
+                const debt = Math.abs(balances[debtor]);
+                const credit = balances[creditor];
+                const amount = Math.min(debt, credit);
+                
+                if (amount > 0.01) {
+                    settlements.push({
+                        from: debtor,
+                        to: creditor,
+                        amount: amount
+                    });
+                }
+                
+                balances[debtor] += amount;
+                balances[creditor] -= amount;
+                
+                if (Math.abs(balances[debtor]) < 0.01) i++;
+                if (Math.abs(balances[creditor]) < 0.01) j++;
+            }
+            
+            return settlements;
         }
 
         // 初始化
