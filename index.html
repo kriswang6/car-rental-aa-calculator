@@ -547,6 +547,20 @@
         <h1>🚗 智能租车费用AA计算器</h1>
         <p class="subtitle">每个费用独立设置参与人和分摊比例</p>
 
+        <!-- 数据管理 -->
+        <div class="card">
+            <h2 class="card-title">数据管理</h2>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px;">
+                <button class="btn btn-secondary" onclick="saveData()">💾 保存数据</button>
+                <button class="btn btn-secondary" onclick="loadData()">📂 加载数据</button>
+                <button class="btn btn-outline" onclick="exportData()">📤 导出JSON</button>
+                <button class="btn btn-outline" onclick="importData()">📥 导入JSON</button>
+                <button class="btn btn-danger" onclick="clearAllData()">🗑️ 清空所有</button>
+            </div>
+            <div id="saveStatus" style="font-size: 13px; color: #666; padding: 8px; background: #f8f9fa; border-radius: 6px; display: none;"></div>
+            <input type="file" id="importFile" style="display: none;" accept=".json" onchange="handleImport(event)">
+        </div>
+
         <!-- 人员管理 -->
         <div class="card">
             <h2 class="card-title">参与人员</h2>
@@ -1298,12 +1312,163 @@
             return settlements;
         }
 
+        // 数据管理功能
+        function saveData() {
+            const data = {
+                persons,
+                expenses,
+                saveTime: new Date().toLocaleString('zh-CN')
+            };
+            localStorage.setItem('carRentalAA_data', JSON.stringify(data));
+            showSaveStatus('✅ 数据已保存到浏览器本地存储');
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('carRentalAA_data');
+            if (!saved) {
+                showSaveStatus('❌ 没有找到保存的数据');
+                return;
+            }
+            
+            try {
+                const data = JSON.parse(saved);
+                if (confirm(`找到 ${data.saveTime} 保存的数据，是否加载？`)) {
+                    persons = data.persons || [];
+                    expenses = data.expenses || [];
+                    updateAll();
+                    showSaveStatus('✅ 数据加载成功');
+                }
+            } catch (e) {
+                showSaveStatus('❌ 数据加载失败');
+            }
+        }
+
+        function exportData() {
+            const data = {
+                persons,
+                expenses,
+                exportTime: new Date().toLocaleString('zh-CN'),
+                version: '1.0'
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `租车费用AA_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showSaveStatus('✅ 数据已导出');
+        }
+
+        function importData() {
+            document.getElementById('importFile').click();
+        }
+
+        function handleImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (confirm(`导入 ${data.exportTime || '未知时间'} 的数据？当前数据将被覆盖。`)) {
+                        persons = data.persons || [];
+                        expenses = data.expenses || [];
+                        updateAll();
+                        showSaveStatus('✅ 数据导入成功');
+                    }
+                } catch (err) {
+                    showSaveStatus('❌ 文件格式错误');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function clearAllData() {
+            if (!confirm('确定要清空所有数据吗？此操作不可恢复！')) return;
+            persons = [];
+            expenses = [];
+            selectedPersons.clear();
+            splitValues = {};
+            updateAll();
+            localStorage.removeItem('carRentalAA_data');
+            showSaveStatus('✅ 数据已清空');
+        }
+
+        function showSaveStatus(message) {
+            const status = document.getElementById('saveStatus');
+            status.textContent = message;
+            status.style.display = 'block';
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
+
+        function updateAll() {
+            updatePersonList();
+            updatePayerSelect();
+            updatePersonSelector();
+            updateSplitDetails();
+            updatePreview();
+            updateExpenseList();
+            updateSummary();
+        }
+
+        // 自动保存
+        function autoSave() {
+            if (persons.length > 0 || expenses.length > 0) {
+                const data = { persons, expenses, saveTime: new Date().toLocaleString('zh-CN') };
+                localStorage.setItem('carRentalAA_data', JSON.stringify(data));
+            }
+        }
+
+        // 页面加载时自动加载数据
+        function init() {
+            const saved = localStorage.getItem('carRentalAA_data');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    persons = data.persons || [];
+                    expenses = data.expenses || [];
+                    updateAll();
+                    if (persons.length > 0 || expenses.length > 0) {
+                        showSaveStatus(`📂 已自动恢复 ${data.saveTime} 的数据`);
+                    }
+                } catch (e) {
+                    console.error('自动加载失败', e);
+                }
+            }
+        }
+
+        // 监听数据变化自动保存
+        const originalAddPerson = addPerson;
+        addPerson = function() {
+            originalAddPerson();
+            autoSave();
+        };
+
+        const originalRemovePerson = removePerson;
+        removePerson = function(name) {
+            originalRemovePerson(name);
+            autoSave();
+        };
+
+        const originalAddExpense = addExpense;
+        addExpense = function() {
+            originalAddExpense();
+            autoSave();
+        };
+
+        const originalRemoveExpense = removeExpense;
+        removeExpense = function(id) {
+            originalRemoveExpense(id);
+            autoSave();
+        };
+
         // 初始化
-        updatePersonList();
-        updatePayerSelect();
-        updatePersonSelector();
-        updateExpenseList();
-        updateSummary();
+        init();
 
         // 回车添加人员
         document.getElementById('newPersonName').addEventListener('keypress', e => {
