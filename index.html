@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能租车费用AA计算器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 10px;
+            font-size: 2rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: #667eea;
+            border-radius: 2px;
+        }
+
+        /* 人物管理 */
+        .person-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .person-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 16px;
+            font-size: 13px;
+        }
+
+        .person-tag .remove-btn {
+            cursor: pointer;
+            opacity: 0.8;
+        }
+
+        .add-person-form {
+            display: flex;
+            gap: 8px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            padding: 10px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ff4757;
+            color: white;
+        }
+
+        .btn-success {
+            background: #2ed573;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f1f2f6;
+            color: #333;
+        }
+
+        .btn-outline {
+            background: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* 费用录入区 */
+        .expense-input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        /* 分摊方式选择 */
+        .split-method-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .split-tab {
+            padding: 10px 16px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .split-tab.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        /* 参与人设置区 */
+        .participants-config {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .config-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .config-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .person-selector-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .person-select-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 12px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .person-select-card:hover {
+            border-color: #667eea;
+        }
+
+        .person-select-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .person-select-card .name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        /* 比例/金额输入 */
+        .split-details {
+            background: white;
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 10px;
+        }
+
+        .split-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .split-row:last-child {
+            border-bottom: none;
+        }
+
+        .split-row .name {
+            min-width: 80px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .split-input-group {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .split-slider {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            background: #e0e0e0;
+            border-radius: 3px;
+        }
+
+        .split-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #667eea;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .split-number-input {
+            width: 70px;
+            padding: 6px 8px;
+            text-align: center;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .split-preview {
+            min-width: 70px;
+            text-align: right;
+            color: #667eea;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .total-indicator {
+            text-align: center;
+            padding: 8px;
+            margin-top: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .total-indicator.ok {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .total-indicator.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        /* 快捷按钮 */
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .quick-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .quick-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        /* 费用预览 */
+        .expense-preview-box {
+            background: #e8f4fd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .preview-title {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px;
+        }
+
+        .preview-item {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .preview-item .payer-name {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .preview-item .amount {
+            font-size: 16px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        /* 费用列表 */
+        .expense-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .expense-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .expense-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .expense-type {
+            font-weight: 600;
+            color: #333;
+            font-size: 15px;
+        }
+
+        .expense-amount {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ff4757;
+        }
+
+        .expense-meta {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .expense-shares {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .share-tag {
+            background: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .share-tag .name {
+            color: #333;
+        }
+
+        .share-tag .amount {
+            color: #667eea;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        .expense-actions {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+        }
+
+        /* 汇总表 */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .summary-card .label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .summary-card .value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        /* 明细表 */
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .detail-table th,
+        .detail-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .detail-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .text-positive {
+            color: #2ed573;
+            font-weight: 600;
+        }
+
+        .text-negative {
+            color: #ff4757;
+            font-weight: 600;
+        }
+
+        .empty-tip {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        @media (max-width: 768px) {
+            .expense-input-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .person-selector-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .split-row {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚗 智能租车费用AA计算器</h1>
+        <p class="subtitle">每个费用独立设置参与人和分摊比例</p>
+
+        <!-- 人员管理 -->
+        <div class="card">
+            <h2 class="card-title">参与人员</h2>
+            <div class="person-section" id="personList">
+                <span style="color: #999;">暂无人员，请添加</span>
+            </div>
+            <div class="add-person-form">
+                <input type="text" id="newPersonName" placeholder="输入姓名" style="flex: 1;">
+                <button class="btn btn-primary" onclick="addPerson()">添加</button>
+            </div>
+        </div>
+
+        <!-- 添加费用 -->
+        <div class="card">
+            <h2 class="card-title">添加费用</h2>
+            
+            <div class="expense-input-grid">
+                <div class="form-group">
+                    <label>费用类型</label>
+                    <select id="expenseType">
+                        <option value="租车费">🚗 租车费</option>
+                        <option value="高速费">🛣️ 高速费</option>
+                        <option value="油费/电费">⛽ 油费/电费</option>
+                        <option value="停车费">🅿️ 停车费</option>
+                        <option value="餐饮">🍽️ 餐饮</option>
+                        <option value="住宿">🏨 住宿</option>
+                        <option value="其他">📦 其他</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>金额 (元)</label>
+                    <input type="number" id="expenseAmount" placeholder="0.00" min="0" step="0.01" oninput="updatePreview()">
+                </div>
+                <div class="form-group">
+                    <label>付款人</label>
+                    <select id="expensePayer">
+                        <option value="">选择付款人</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 分摊方式 -->
+            <div style="margin-bottom: 10px;">
+                <label style="font-size: 12px; color: #666; font-weight: 600;">分摊方式</label>
+                <div class="split-method-tabs">
+                    <button class="split-tab active" onclick="setSplitMethod('equal')">⚖️ 平均分摊</button>
+                    <button class="split-tab" onclick="setSplitMethod('ratio')">📊 按比例</button>
+                    <button class="split-tab" onclick="setSplitMethod('amount')">💰 固定金额</button>
+                    <button class="split-tab" onclick="setSplitMethod('custom')">⚙️ 自定义</button>
+                </div>
+            </div>
+
+            <!-- 参与人选择 -->
+            <div class="participants-config">
+                <div class="config-header">
+                    <span class="config-title">选择参与人</span>
+                    <div>
+                        <button class="btn btn-small btn-outline" onclick="selectAll()">全选</button>
+                        <button class="btn btn-small btn-outline" onclick="clearAll()">清空</button>
+                    </div>
+                </div>
+                
+                <div class="person-selector-grid" id="personSelector">
+                    <!-- 动态生成 -->
+                </div>
+
+                <!-- 比例/金额输入区 -->
+                <div class="split-details" id="splitDetails" style="display: none;">
+                    <!-- 动态生成 -->
+                </div>
+
+                <div class="total-indicator" id="totalIndicator" style="display: none;">
+                    总计: 0%
+                </div>
+
+                <div class="quick-actions">
+                    <button class="quick-btn" onclick="quickSet('all')">所有人</button>
+                    <button class="quick-btn" onclick="quickSet('driver')">仅司机</button>
+                    <button class="quick-btn" onclick="quickSet('half')">一半人</button>
+                </div>
+            </div>
+
+            <!-- 费用预览 -->
+            <div class="expense-preview-box" id="previewBox" style="display: none;">
+                <div class="preview-title">费用分摊预览</div>
+                <div class="preview-grid" id="previewGrid">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+
+            <button class="btn btn-success" onclick="addExpense()" style="width: 100%;">添加费用</button>
+        </div>
+
+        <!-- 费用明细 -->
+        <div class="card">
+            <h2 class="card-title">费用明细</h2>
+            <div class="expense-list" id="expenseList">
+                <div class="empty-tip">
+                    <div style="font-size: 40px; margin-bottom: 10px;">📝</div>
+                    <p>暂无费用记录</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 费用汇总 -->
+        <div class="card">
+            <h2 class="card-title">费用汇总</h2>
+            
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <div class="label">总支出</div>
+                    <div class="value" id="totalExpense">¥0</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">费用笔数</div>
+                    <div class="value" id="expenseCount">0</div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">参与人数</div>
+                    <div class="value" id="personCount">0</div>
+                </div>
+            </div>
+
+            <h3 style="margin: 20px 0 10px; font-size: 16px;">个人明细</h3>
+            <table class="detail-table">
+                <thead>
+                    <tr>
+                        <th>姓名</th>
+                        <th>已付金额</th>
+                        <th>应付金额</th>
+                        <th>差额</th>
+                        <th>结算</th>
+                    </tr>
+                </thead>
+                <tbody id="summaryBody">
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: #999;">暂无数据</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let persons = [];
+        let expenses = [];
+        let currentMethod = 'equal';
+        let selectedPersons = new Set();
+        let splitValues = {}; // 存储每个人的分摊值
+
+        function addPerson() {
+            const input = document.getElementById('newPersonName');
+            const name = input.value.trim();
+            
+            if (!name) {
+                alert('请输入姓名');
+                return;
+            }
+            if (persons.includes(name)) {
+                alert('该人员已存在');
+                return;
+            }
+            
+            persons.push(name);
+            selectedPersons.add(name);
+            splitValues[name] = 0;
+            input.value = '';
+            
+            updatePersonList();
+            updatePayerSelect();
+            updatePersonSelector();
+            updateSplitDetails();
+            updatePreview();
+            updateSummary();
+        }
+
+        function removePerson(name) {
+            if (!confirm(`确定删除 ${name}？`)) return;
+            
+            persons = persons.filter(p => p !== name);
+            selectedPersons.delete(name);
+            delete splitValues[name];
+            expenses = expenses.filter(e => e.payer !== name && !e.shares[name]);
+            
+            updatePersonList();
+            updatePayerSelect();
+            updatePersonSelector();
+            updateSplitDetails();
+            updateExpenseList();
+            updateSummary();
+        }
+
+        function updatePersonList() {
+            const container = document.getElementById('personList');
+            if (persons.length === 0) {
+                container.innerHTML = '<span style="color: #999;">暂无人员，请添加</span>';
+                return;
+            }
+            container.innerHTML = persons.map(name => `
+                <span class="person-tag">
+                    ${name}
+                    <span class="remove-btn" onclick="removePerson('${name}')">✕</span>
+                </span>
+            `).join('');
+        }
+
+        function updatePayerSelect() {
+            const select = document.getElementById('expensePayer');
+            const current = select.value;
+            select.innerHTML = '<option value="">选择付款人</option>' + 
+                persons.map(p => `<option value="${p}" ${p === current ? 'selected' : ''}>${p}</option>`).join('');
+        }
+
+        function setSplitMethod(method) {
+            currentMethod = method;
+            document.querySelectorAll('.split-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // 重置分摊值
+            persons.forEach(p => splitValues[p] = 0);
+            
+            updateSplitDetails();
+            updatePreview();
+        }
+
+        function updatePersonSelector() {
+            const container = document.getElementById('personSelector');
+            if (persons.length === 0) {
+                container.innerHTML = '<div style="color: #999; grid-column: 1/-1;">请先添加人员</div>';
+                return;
+            }
+            
+            container.innerHTML = persons.map(name => {
+                const selected = selectedPersons.has(name);
+                return `
+                    <div class="person-select-card ${selected ? 'selected' : ''}" onclick="togglePerson('${name}')">
+                        <div class="name">${name}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function togglePerson(name) {
+            if (selectedPersons.has(name)) {
+                selectedPersons.delete(name);
+            } else {
+                selectedPersons.add(name);
+            }
+            updatePersonSelector();
+            updateSplitDetails();
+            updatePreview();
+        }
+
+        function selectAll() {
+            persons.forEach(p => selectedPersons.add(p));
+            updatePersonSelector();
+            updateSplitDetails();
+            updatePreview();
+        }
+
+        function clearAll() {
+            selectedPersons.clear();
+            updatePersonSelector();
+            updateSplitDetails();
+            updatePreview();
+        }
+
+        function quickSet(type) {
+            selectedPersons.clear();
+            
+            if (type === 'all') {
+                persons.forEach(p => selectedPersons.add(p));
+            } else if (type === 'driver' && persons.length > 0) {
+                selectedPersons.add(persons[0]);
+            } else if (type === 'half') {
+                persons.slice(0, Math.ceil(persons.length / 2)).forEach(p => selectedPersons.add(p));
+            }
+            
+            updatePersonSelector();
+            updateSplitDetails();
+            updatePreview();
+        }
+
+        function updateSplitDetails() {
+            const container = document.getElementById('splitDetails');
+            const indicator = document.getElementById('totalIndicator');
+            
+            if (selectedPersons.size === 0 || currentMethod === 'equal') {
+                container.style.display = 'none';
+                indicator.style.display = 'none';
+                return;
+            }
+            
+            container.style.display = 'block';
+            indicator.style.display = 'block';
+            
+            const amount = parseFloat(document.getElementById('expenseAmount').value) || 0;
+            
+            if (currentMethod === 'ratio') {
+                // 比例模式
+                container.innerHTML = Array.from(selectedPersons).map(name => {
+                    const value = splitValues[name] || 0;
+                    const previewAmount = amount * value / 100;
+                    return `
+                        <div class="split-row">
+                            <span class="name">${name}</span>
+                            <div class="split-input-group">
+                                <input type="range" class="split-slider" min="0" max="100" 
+                                    value="${value}" oninput="updateSplitValue('${name}', this.value)">
+                                <input type="number" class="split-number-input" min="0" max="100"
+                                    value="${value}" onchange="updateSplitValue('${name}', this.value)">
+                                <span>%</span>
+                            </div>
+                            <span class="split-preview">¥${previewAmount.toFixed(2)}</span>
+                        </div>
+                    `;
+                }).join('');
+                
+                updateTotalIndicator('ratio');
+                
+            } else if (currentMethod === 'amount') {
+                // 固定金额模式
+                container.innerHTML = Array.from(selectedPersons).map(name => {
+                    const value = splitValues[name] || 0;
+                    return `
+                        <div class="split-row">
+                            <span class="name">${name}</span>
+                            <div class="split-input-group">
+                                <input type="number" class="split-number-input" style="width: 100px;"
+                                    value="${value}" min="0" step="0.01"
+                                    onchange="updateSplitValue('${name}', this.value)">
+                                <span>元</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                updateTotalIndicator('amount');
+                
+            } else if (currentMethod === 'custom') {
+                // 自定义模式 - 可以设置任意值，最后按比例分摊
+                container.innerHTML = Array.from(selectedPersons).map(name => {
+                    const value = splitValues[name] || 0;
+                    return `
+                        <div class="split-row">
+                            <span class="name">${name}</span>
+                            <div class="split-input-group">
+                                <input type="number" class="split-number-input" style="width: 100px;"
+                                    value="${value}" min="0" step="0.01"
+                                    onchange="updateSplitValue('${name}', this.value)"
+                                    placeholder="权重">
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                updateTotalIndicator('custom');
+            }
+        }
+
+        function updateSplitValue(name, value) {
+            splitValues[name] = parseFloat(value) || 0;
+            updateSplitDetails();
+            updatePreview();
+        }
+
+        function updateTotalIndicator(type) {
+            const indicator = document.getElementById('totalIndicator');
+            const amount = parseFloat(document.getElementById('expenseAmount').value) || 0;
+            
+            let total = 0;
+            selectedPersons.forEach(name => {
+                total += splitValues[name] || 0;
+            });
+            
+            if (type === 'ratio') {
+                if (Math.abs(total - 100) < 0.1) {
+                    indicator.textContent = `总计: ${total.toFixed(1)}% ✓`;
+                    indicator.className = 'total-indicator ok';
+                } else if (total < 100) {
+                    indicator.textContent = `总计: ${total.toFixed(1)}% (还差${(100-total).toFixed(1)}%)`;
+                    indicator.className = 'total-indicator warning';
+                } else {
+                    indicator.textContent = `总计: ${total.toFixed(1)}% (超出${(total-100).toFixed(1)}%)`;
+                    indicator.className = 'total-indicator warning';
+                }
+            } else if (type === 'amount') {
+                if (Math.abs(total - amount) < 0.01) {
+                    indicator.textContent = `总计: ¥${total.toFixed(2)} ✓`;
+                    indicator.className = 'total-indicator ok';
+                } else if (total < amount) {
+                    indicator.textContent = `总计: ¥${total.toFixed(2)} (还差¥${(amount-total).toFixed(2)})`;
+                    indicator.className = 'total-indicator warning';
+                } else {
+                    indicator.textContent = `总计: ¥${total.toFixed(2)} (超出¥${(total-amount).toFixed(2)})`;
+                    indicator.className = 'total-indicator warning';
+                }
+            } else {
+                indicator.textContent = `总权重: ${total.toFixed(2)}`;
+                indicator.className = total > 0 ? 'total-indicator ok' : 'total-indicator warning';
+            }
+        }
+
+        function updatePreview() {
+            const amount = parseFloat(document.getElementById('expenseAmount').value) || 0;
+            const previewBox = document.getElementById('previewBox');
+            const previewGrid = document.getElementById('previewGrid');
+            
+            if (amount <= 0 || selectedPersons.size === 0) {
+                previewBox.style.display = 'none';
+                return;
+            }
+            
+            previewBox.style.display = 'block';
+            
+            // 计算每人分摊
+            const shares = calculateShares(amount);
+            
+            previewGrid.innerHTML = Object.entries(shares).map(([name, shareAmount]) => `
+                <div class="preview-item">
+                    <div class="payer-name">${name}</div>
+                    <div class="amount">¥${shareAmount.toFixed(2)}</div>
+                </div>
+            `).join('');
+            
+            updateSplitDetails();
+        }
+
+        function calculateShares(amount) {
+            const shares = {};
+            const selected = Array.from(selectedPersons);
+            
+            if (selected.length === 0) return shares;
+            
+            if (currentMethod === 'equal') {
+                // 平均分摊
+                const share = amount / selected.length;
+                selected.forEach(name => shares[name] = share);
+                
+            } else if (currentMethod === 'ratio') {
+                // 按比例分摊
+                const totalRatio = selected.reduce((sum, name) => sum + (splitValues[name] || 0), 0);
+                if (totalRatio > 0) {
+                    selected.forEach(name => {
+                        const ratio = (splitValues[name] || 0) / totalRatio;
+                        shares[name] = amount * ratio;
+                    });
+                }
+                
+            } else if (currentMethod === 'amount') {
+                // 固定金额
+                selected.forEach(name => {
+                    shares[name] = splitValues[name] || 0;
+                });
+                
+            } else if (currentMethod === 'custom') {
+                // 按权重分摊
+                const totalWeight = selected.reduce((sum, name) => sum + (splitValues[name] || 0), 0);
+                if (totalWeight > 0) {
+                    selected.forEach(name => {
+                        const weight = (splitValues[name] || 0) / totalWeight;
+                        shares[name] = amount * weight;
+                    });
+                }
+            }
+            
+            return shares;
+        }
+
+        function addExpense() {
+            const type = document.getElementById('expenseType').value;
+            const amount = parseFloat(document.getElementById('expenseAmount').value);
+            const payer = document.getElementById('expensePayer').value;
+            
+            if (!amount || amount <= 0) {
+                alert('请输入金额');
+                return;
+            }
+            if (!payer) {
+                alert('请选择付款人');
+                return;
+            }
+            if (selectedPersons.size === 0) {
+                alert('请选择参与人');
+                return;
+            }
+            
+            const shares = calculateShares(amount);
+            
+            const expense = {
+                id: Date.now(),
+                type,
+                amount,
+                payer,
+                method: currentMethod,
+                participants: Array.from(selectedPersons),
+                shares,
+                splitValues: {...splitValues},
+                time: new Date().toLocaleString('zh-CN')
+            };
+            
+            expenses.push(expense);
+            
+            // 重置表单
+            document.getElementById('expenseAmount').value = '';
+            document.getElementById('expensePayer').value = '';
+            selectedPersons.clear();
+            persons.forEach(p => splitValues[p] = 0);
+            
+            updatePersonSelector();
+            updateSplitDetails();
+            updatePreview();
+            updateExpenseList();
+            updateSummary();
+        }
+
+        function removeExpense(id) {
+            if (!confirm('确定删除这条费用？')) return;
+            expenses = expenses.filter(e => e.id !== id);
+            updateExpenseList();
+            updateSummary();
+        }
+
+        function updateExpenseList() {
+            const container = document.getElementById('expenseList');
+            
+            if (expenses.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-tip">
+                        <div style="font-size: 40px; margin-bottom: 10px;">📝</div>
+                        <p>暂无费用记录</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const methodLabels = {
+                'equal': '平均分摊',
+                'ratio': '按比例',
+                'amount': '固定金额',
+                'custom': '自定义'
+            };
+            
+            container.innerHTML = [...expenses].reverse().map(expense => `
+                <div class="expense-item">
+                    <div class="expense-actions">
+                        <button class="btn btn-small btn-danger" onclick="removeExpense(${expense.id})">删除</button>
+                    </div>
+                    <div class="expense-header">
+                        <span class="expense-type">${expense.type}</span>
+                        <span class="expense-amount">¥${expense.amount.toFixed(2)}</span>
+                    </div>
+                    <div class="expense-meta">
+                        付款人: ${expense.payer} | ${methodLabels[expense.method]} | ${expense.time}
+                    </div>
+                    <div class="expense-shares">
+                        ${Object.entries(expense.shares).map(([name, amount]) => `
+                            <span class="share-tag">
+                                <span class="name">${name}</span>
+                                <span class="amount">¥${amount.toFixed(2)}</span>
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateSummary() {
+            const totalExpense = expenses.reduce((sum, e) => sum + e.amount, 0);
+            
+            // 计算每个人的收支
+            const stats = {};
+            persons.forEach(p => stats[p] = { paid: 0, shouldPay: 0 });
+            
+            expenses.forEach(e => {
+                if (stats[e.payer]) stats[e.payer].paid += e.amount;
+                Object.entries(e.shares).forEach(([name, amount]) => {
+                    if (stats[name]) stats[name].shouldPay += amount;
+                });
+            });
+            
+            // 更新汇总卡片
+            document.getElementById('totalExpense').textContent = `¥${totalExpense.toFixed(0)}`;
+            document.getElementById('expenseCount').textContent = expenses.length;
+            document.getElementById('personCount').textContent = persons.length;
+            
+            // 更新明细表
+            const tbody = document.getElementById('summaryBody');
+            if (persons.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #999;">暂无数据</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = persons.map(name => {
+                const stat = stats[name];
+                const diff = stat.paid - stat.shouldPay;
+                let status, statusClass;
+                
+                if (Math.abs(diff) < 0.01) {
+                    status = '已结清 ✓';
+                    statusClass = 'text-positive';
+                } else if (diff > 0) {
+                    status = `应收 ¥${diff.toFixed(2)}`;
+                    statusClass = 'text-positive';
+                } else {
+                    status = `应付 ¥${Math.abs(diff).toFixed(2)}`;
+                    statusClass = 'text-negative';
+                }
+                
+                return `
+                    <tr>
+                        <td><strong>${name}</strong></td>
+                        <td>¥${stat.paid.toFixed(2)}</td>
+                        <td>¥${stat.shouldPay.toFixed(2)}</td>
+                        <td class="${diff >= 0 ? 'text-positive' : 'text-negative'}">
+                            ${diff >= 0 ? '+' : ''}${diff.toFixed(2)}
+                        </td>
+                        <td class="${statusClass}">${status}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 初始化
+        updatePersonList();
+        updatePayerSelect();
+        updatePersonSelector();
+        updateExpenseList();
+        updateSummary();
+
+        // 回车添加人员
+        document.getElementById('newPersonName').addEventListener('keypress', e => {
+            if (e.key === 'Enter') addPerson();
+        });
+    </script>
+</body>
+</html>
