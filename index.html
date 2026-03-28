@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>智能租车费用AA计算器</title>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -675,6 +676,14 @@
                     <div style="color: #999; text-align: center; padding: 20px;">暂无行程</div>
                 </div>
             </div>
+
+            <!-- 行程甘特图 -->
+            <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 10px;">
+                <h3 style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 15px;">📊 行程时间线</h3>
+                <div id="tripGantt" style="overflow-x: auto;">
+                    <div style="color: #999; text-align: center; padding: 30px;">添加行程后显示甘特图</div>
+                </div>
+            </div>
         </div>
 
         <!-- 数据管理 -->
@@ -685,6 +694,7 @@
                 <button class="btn btn-secondary" onclick="loadData()">📂 加载数据</button>
                 <button class="btn btn-outline" onclick="exportData()">📤 导出JSON</button>
                 <button class="btn btn-outline" onclick="importData()">📥 导入JSON</button>
+                <button class="btn btn-outline" onclick="exportImage()">🖼️ 导出图片</button>
                 <button class="btn btn-danger" onclick="clearAllData()">🗑️ 清空所有</button>
             </div>
             <div id="saveStatus" style="font-size: 13px; color: #666; padding: 8px; background: #f8f9fa; border-radius: 6px; display: none;"></div>
@@ -980,6 +990,7 @@
             const container = document.getElementById('tripList');
             if (trips.length === 0) {
                 container.innerHTML = '<div style="color: #999; text-align: center; padding: 20px;">暂无行程</div>';
+                updateTripGantt();
                 return;
             }
             
@@ -995,6 +1006,85 @@
                     <button class="btn btn-small btn-danger" onclick="removeTrip(${trip.id})" style="width: 100%;">删除</button>
                 </div>
             `).join('');
+            
+            updateTripGantt();
+        }
+
+        function updateTripGantt() {
+            const container = document.getElementById('tripGantt');
+            if (trips.length === 0) {
+                container.innerHTML = '<div style="color: #999; text-align: center; padding: 30px;">添加行程后显示甘特图</div>';
+                return;
+            }
+            
+            // 生成甘特图
+            const colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'];
+            
+            const ganttHTML = `
+                <div style="min-width: 800px;">
+                    <!-- 时间轴 -->
+                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <div style="width: 100px; font-size: 12px; font-weight: 600; color: #666;">行程</div>
+                        <div style="flex: 1; display: flex; border-bottom: 2px solid #e0e0e0;">
+                            ${trips.map((trip, index) => `
+                                <div style="flex: 1; text-align: center; padding: 5px; font-size: 12px; color: #666;">
+                                    ${trip.name}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <!-- 公里数 -->
+                    <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                        <div style="width: 100px; font-size: 12px; color: #999;">公里数</div>
+                        <div style="flex: 1; display: flex;">
+                            ${trips.map((trip, index) => `
+                                <div style="flex: 1; text-align: center; padding: 5px; font-size: 12px; color: #666; font-weight: 600;">
+                                    ${trip.distance} km
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <!-- 参与人甘特图 -->
+                    ${persons.map((person, pIndex) => {
+                        const personColor = colors[pIndex % colors.length];
+                        return `
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <div style="width: 100px; font-size: 13px; font-weight: 600; color: #333;">${person}</div>
+                                <div style="flex: 1; display: flex;">
+                                    ${trips.map((trip, tIndex) => {
+                                        const isInTrip = trip.persons.includes(person);
+                                        return `
+                                            <div style="flex: 1; height: 24px; margin: 0 2px; border-radius: 4px;
+                                                ${isInTrip ? `background: linear-gradient(135deg, ${personColor} 0%, ${personColor}80 100%); border: 1px solid ${personColor}40;` : 'background: #f0f0f0; border: 1px solid #e0e0e0; opacity: 0.3;'}
+                                            "></div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                    
+                    <!-- 图例 -->
+                    <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 12px; font-weight: 600; color: #666; margin-bottom: 10px;">图例</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                            ${persons.map((person, pIndex) => {
+                                const personColor = colors[pIndex % colors.length];
+                                return `
+                                    <div style="display: flex; align-items: center; gap: 5px;">
+                                        <div style="width: 16px; height: 16px; border-radius: 3px; background: ${personColor};"></div>
+                                        <span style="font-size: 12px; color: #666;">${person}</span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = ganttHTML;
         }
 
         function setSplitMethod(method) {
@@ -1651,6 +1741,105 @@
             showSaveStatus('✅ 数据已清空');
         }
 
+        function exportImage() {
+            // 创建一个包含所有内容的容器
+            const exportContainer = document.createElement('div');
+            exportContainer.style.maxWidth = '1200px';
+            exportContainer.style.margin = '0 auto';
+            exportContainer.style.padding = '30px';
+            exportContainer.style.background = 'white';
+            exportContainer.style.borderRadius = '16px';
+            
+            // 添加标题
+            const title = document.createElement('h1');
+            title.textContent = '🚗 租车费用AA计算器';
+            title.style.textAlign = 'center';
+            title.style.color = '#333';
+            title.style.marginBottom = '20px';
+            exportContainer.appendChild(title);
+            
+            // 添加行程信息
+            if (trips.length > 0) {
+                const tripSection = document.createElement('div');
+                tripSection.style.marginBottom = '30px';
+                
+                const tripTitle = document.createElement('h2');
+                tripTitle.textContent = '行程信息';
+                tripTitle.style.fontSize = '18px';
+                tripTitle.style.color = '#333';
+                tripTitle.style.marginBottom = '15px';
+                tripSection.appendChild(tripTitle);
+                
+                const tripList = document.createElement('div');
+                tripList.innerHTML = document.getElementById('tripGantt').innerHTML;
+                tripSection.appendChild(tripList);
+                exportContainer.appendChild(tripSection);
+            }
+            
+            // 添加费用明细
+            if (expenses.length > 0) {
+                const expenseSection = document.createElement('div');
+                expenseSection.style.marginBottom = '30px';
+                
+                const expenseTitle = document.createElement('h2');
+                expenseTitle.textContent = '费用明细';
+                expenseTitle.style.fontSize = '18px';
+                expenseTitle.style.color = '#333';
+                expenseTitle.style.marginBottom = '15px';
+                expenseSection.appendChild(expenseTitle);
+                
+                const expenseList = document.createElement('div');
+                expenseList.innerHTML = document.getElementById('expenseList').innerHTML;
+                expenseSection.appendChild(expenseList);
+                exportContainer.appendChild(expenseSection);
+            }
+            
+            // 添加费用汇总
+            const summarySection = document.createElement('div');
+            summarySection.style.marginBottom = '30px';
+            
+            const summaryTitle = document.createElement('h2');
+            summaryTitle.textContent = '费用汇总';
+            summaryTitle.style.fontSize = '18px';
+            summaryTitle.style.color = '#333';
+            summaryTitle.style.marginBottom = '15px';
+            summarySection.appendChild(summaryTitle);
+            
+            const summaryContent = document.createElement('div');
+            summaryContent.innerHTML = document.querySelector('.summary-cards').outerHTML;
+            summarySection.appendChild(summaryContent);
+            
+            const tableContent = document.createElement('div');
+            tableContent.innerHTML = document.querySelector('.detail-table').outerHTML;
+            summarySection.appendChild(tableContent);
+            
+            exportContainer.appendChild(summarySection);
+            
+            // 添加到文档
+            document.body.appendChild(exportContainer);
+            
+            // 导出图片
+            html2canvas(exportContainer, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff'
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `租车费用AA_${new Date().toISOString().slice(0, 10)}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                // 清理
+                document.body.removeChild(exportContainer);
+                showSaveStatus('✅ 图片导出成功');
+            }).catch(err => {
+                console.error('导出失败:', err);
+                document.body.removeChild(exportContainer);
+                showSaveStatus('❌ 图片导出失败');
+            });
+        }
+
         function showSaveStatus(message) {
             const status = document.getElementById('saveStatus');
             status.textContent = message;
@@ -1670,6 +1859,7 @@
             updatePreview();
             updateExpenseList();
             updateSummary();
+            updateTripGantt();
         }
 
         // 自动保存
@@ -1688,13 +1878,26 @@
                     const data = JSON.parse(saved);
                     persons = data.persons || [];
                     expenses = data.expenses || [];
+                    trips = data.trips || [];
+                    // 转换旧数据格式（兼容单个person字段）
+                    trips = trips.map(trip => {
+                        if (trip.person && !trip.persons) {
+                            return {
+                                ...trip,
+                                persons: [trip.person]
+                            };
+                        }
+                        return trip;
+                    });
                     updateAll();
-                    if (persons.length > 0 || expenses.length > 0) {
+                    if (persons.length > 0 || expenses.length > 0 || trips.length > 0) {
                         showSaveStatus(`📂 已自动恢复 ${data.saveTime} 的数据`);
                     }
                 } catch (e) {
                     console.error('自动加载失败', e);
                 }
+            } else {
+                updateTripGantt();
             }
         }
 
