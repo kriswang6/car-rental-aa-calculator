@@ -547,6 +547,24 @@
         <h1>🚗 智能租车费用AA计算器</h1>
         <p class="subtitle">每个费用独立设置参与人和分摊比例</p>
 
+        <!-- 行程管理 -->
+        <div class="card">
+            <h2 class="card-title">🚗 行程管理</h2>
+            <div style="margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 10px;">
+                <div style="display: grid; grid-template-columns: 1fr 150px 200px 100px; gap: 10px; align-items: center; margin-bottom: 10px;">
+                    <input type="text" id="tripName" placeholder="行程名称（如：市内、去程、返程）" style="grid-column: 1;">
+                    <input type="number" id="tripDistance" placeholder="公里数" min="0" step="0.1" style="grid-column: 2;">
+                    <select id="tripPersons" style="grid-column: 3;">
+                        <option value="">选择参与人</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="addTrip()" style="grid-column: 4;">添加</button>
+                </div>
+                <div id="tripList" style="margin-top: 15px;">
+                    <div style="color: #999; text-align: center; padding: 20px;">暂无行程</div>
+                </div>
+            </div>
+        </div>
+
         <!-- 数据管理 -->
         <div class="card">
             <h2 class="card-title">数据管理</h2>
@@ -610,6 +628,7 @@
                     <button class="split-tab" onclick="setSplitMethod('ratio')">📊 按比例</button>
                     <button class="split-tab" onclick="setSplitMethod('amount')">💰 固定金额</button>
                     <button class="split-tab" onclick="setSplitMethod('custom')">⚙️ 自定义</button>
+                    <button class="split-tab" onclick="setSplitMethod('distance')">🚗 按公里数</button>
                 </div>
             </div>
 
@@ -714,6 +733,7 @@
     <script>
         let persons = [];
         let expenses = [];
+        let trips = []; // 行程数据
         let currentMethod = 'equal';
         let selectedPersons = new Set();
         let splitValues = {}; // 存储每个人的分摊值
@@ -738,6 +758,7 @@
             
             updatePersonList();
             updatePayerSelect();
+            updateTripPersonsSelect();
             updatePersonSelector();
             updateSplitDetails();
             updatePreview();
@@ -751,11 +772,14 @@
             selectedPersons.delete(name);
             delete splitValues[name];
             expenses = expenses.filter(e => e.payer !== name && !e.shares[name]);
+            trips = trips.filter(t => t.person !== name);
             
             updatePersonList();
             updatePayerSelect();
+            updateTripPersonsSelect();
             updatePersonSelector();
             updateSplitDetails();
+            updateTripList();
             updateExpenseList();
             updateSummary();
         }
@@ -779,6 +803,70 @@
             const current = select.value;
             select.innerHTML = '<option value="">选择付款人</option>' + 
                 persons.map(p => `<option value="${p}" ${p === current ? 'selected' : ''}>${p}</option>`).join('');
+        }
+
+        function updateTripPersonsSelect() {
+            const select = document.getElementById('tripPersons');
+            select.innerHTML = '<option value="">选择参与人</option>' + 
+                persons.map(p => `<option value="${p}">${p}</option>`).join('');
+        }
+
+        function addTrip() {
+            const name = document.getElementById('tripName').value.trim();
+            const distance = parseFloat(document.getElementById('tripDistance').value);
+            const person = document.getElementById('tripPersons').value;
+            
+            if (!name) {
+                alert('请输入行程名称');
+                return;
+            }
+            if (isNaN(distance) || distance <= 0) {
+                alert('请输入有效公里数');
+                return;
+            }
+            if (!person) {
+                alert('请选择参与人');
+                return;
+            }
+            
+            trips.push({
+                id: Date.now(),
+                name,
+                distance,
+                person,
+                time: new Date().toLocaleString('zh-CN')
+            });
+            
+            document.getElementById('tripName').value = '';
+            document.getElementById('tripDistance').value = '';
+            document.getElementById('tripPersons').value = '';
+            
+            updateTripList();
+            autoSave();
+        }
+
+        function removeTrip(id) {
+            if (!confirm('确定删除这条行程吗？')) return;
+            trips = trips.filter(t => t.id !== id);
+            updateTripList();
+            autoSave();
+        }
+
+        function updateTripList() {
+            const container = document.getElementById('tripList');
+            if (trips.length === 0) {
+                container.innerHTML = '<div style="color: #999; text-align: center; padding: 20px;">暂无行程</div>';
+                return;
+            }
+            
+            container.innerHTML = trips.map(trip => `
+                <div style="display: grid; grid-template-columns: 1fr 120px 150px 80px; gap: 10px; align-items: center; padding: 10px; background: white; border-radius: 8px; margin-bottom: 10px;">
+                    <div style="font-weight: 600; color: #333;">${trip.name}</div>
+                    <div style="color: #666;">${trip.distance} 公里</div>
+                    <div style="color: #666;">${trip.person}</div>
+                    <button class="btn btn-small btn-danger" onclick="removeTrip(${trip.id})")">删除</button>
+                </div>
+            `).join('');
         }
 
         function setSplitMethod(method) {
@@ -1032,6 +1120,27 @@
                         shares[name] = amount * weight;
                     });
                 }
+            } else if (currentMethod === 'distance') {
+                // 按公里数分摊
+                const personDistance = {};
+                selected.forEach(name => {
+                    personDistance[name] = trips
+                        .filter(trip => trip.person === name && selected.includes(trip.person))
+                        .reduce((total, trip) => total + trip.distance, 0);
+                });
+                
+                const totalDistance = Object.values(personDistance).reduce((sum, distance) => sum + distance, 0);
+                if (totalDistance > 0) {
+                    selected.forEach(name => {
+                        const distance = personDistance[name] || 0;
+                        const ratio = distance / totalDistance;
+                        shares[name] = amount * ratio;
+                    });
+                } else {
+                    // 如果没有行程数据，默认平均分摊
+                    const share = amount / selected.length;
+                    selected.forEach(name => shares[name] = share);
+                }
             }
             
             return shares;
@@ -1108,17 +1217,18 @@
                 'equal': '平均分摊',
                 'ratio': '按比例',
                 'amount': '固定金额',
-                'custom': '自定义'
+                'custom': '自定义',
+                'distance': '按公里数'
             };
             
             container.innerHTML = [...expenses].reverse().map(expense => `
                 <div class="expense-item">
-                    <div class="expense-actions">
+                    <div class="expense-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <span class="expense-type">${expense.type}</span>
+                            <span class="expense-amount">¥${expense.amount.toFixed(2)}</span>
+                        </div>
                         <button class="btn btn-small btn-danger" onclick="removeExpense(${expense.id})">删除</button>
-                    </div>
-                    <div class="expense-header">
-                        <span class="expense-type">${expense.type}</span>
-                        <span class="expense-amount">¥${expense.amount.toFixed(2)}</span>
                     </div>
                     <div class="expense-meta">
                         付款人: ${expense.payer} | ${methodLabels[expense.method]} | ${expense.time}
@@ -1317,6 +1427,7 @@
             const data = {
                 persons,
                 expenses,
+                trips,
                 saveTime: new Date().toLocaleString('zh-CN')
             };
             localStorage.setItem('carRentalAA_data', JSON.stringify(data));
@@ -1335,6 +1446,7 @@
                 if (confirm(`找到 ${data.saveTime} 保存的数据，是否加载？`)) {
                     persons = data.persons || [];
                     expenses = data.expenses || [];
+                    trips = data.trips || [];
                     updateAll();
                     showSaveStatus('✅ 数据加载成功');
                 }
@@ -1347,6 +1459,7 @@
             const data = {
                 persons,
                 expenses,
+                trips,
                 exportTime: new Date().toLocaleString('zh-CN'),
                 version: '1.0'
             };
@@ -1375,6 +1488,7 @@
                     if (confirm(`导入 ${data.exportTime || '未知时间'} 的数据？当前数据将被覆盖。`)) {
                         persons = data.persons || [];
                         expenses = data.expenses || [];
+                        trips = data.trips || [];
                         updateAll();
                         showSaveStatus('✅ 数据导入成功');
                     }
@@ -1390,6 +1504,7 @@
             if (!confirm('确定要清空所有数据吗？此操作不可恢复！')) return;
             persons = [];
             expenses = [];
+            trips = [];
             selectedPersons.clear();
             splitValues = {};
             updateAll();
@@ -1409,8 +1524,10 @@
         function updateAll() {
             updatePersonList();
             updatePayerSelect();
+            updateTripPersonsSelect();
             updatePersonSelector();
             updateSplitDetails();
+            updateTripList();
             updatePreview();
             updateExpenseList();
             updateSummary();
@@ -1418,8 +1535,8 @@
 
         // 自动保存
         function autoSave() {
-            if (persons.length > 0 || expenses.length > 0) {
-                const data = { persons, expenses, saveTime: new Date().toLocaleString('zh-CN') };
+            if (persons.length > 0 || expenses.length > 0 || trips.length > 0) {
+                const data = { persons, expenses, trips, saveTime: new Date().toLocaleString('zh-CN') };
                 localStorage.setItem('carRentalAA_data', JSON.stringify(data));
             }
         }
