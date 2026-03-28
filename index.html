@@ -22,39 +22,101 @@
             
             .card {
                 padding: 16px;
+                overflow-x: hidden;
             }
             
+            /* 行程管理 */
+            #tripPersonsCheckboxes {
+                max-height: 60px;
+            }
+            
+            /* 费用输入网格 */
             .expense-input-grid {
                 grid-template-columns: 1fr;
             }
             
+            /* 分摊方式按钮 */
             .split-method-tabs {
                 flex-direction: column;
             }
             
             .split-method-tabs button {
                 width: 100%;
+                padding: 12px;
             }
             
+            /* 参与人选择 */
             .person-selector-grid {
                 grid-template-columns: repeat(3, 1fr);
             }
             
-            .tripList div {
-                grid-template-columns: 1fr;
+            .person-select-card {
+                padding: 8px 5px;
             }
             
+            /* 行程列表 */
+            #tripList > div {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 8px !important;
+                align-items: flex-start !important;
+            }
+            
+            #tripList > div > div {
+                width: 100% !important;
+            }
+            
+            /* 费用列表 */
+            .expense-item {
+                padding: 12px;
+            }
+            
+            .expense-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 8px !important;
+            }
+            
+            .expense-header > div {
+                width: 100%;
+                justify-content: space-between !important;
+            }
+            
+            /* 汇总卡片 */
             .summary-cards {
                 grid-template-columns: 1fr;
             }
             
+            /* 表格 */
             .detail-table {
                 font-size: 12px;
+                width: 100%;
+                overflow-x: auto;
+                display: block;
             }
             
             .detail-table th,
             .detail-table td {
-                padding: 8px;
+                padding: 6px;
+                white-space: nowrap;
+            }
+            
+            /* 结算指引 */
+            #settlementGuide {
+                overflow-x: hidden;
+            }
+            
+            /* 按钮 */
+            .btn {
+                padding: 12px 16px;
+            }
+            
+            /* 输入框 */
+            input[type="text"],
+            input[type="number"],
+            select {
+                padding: 12px 16px;
+                font-size: 14px;
             }
         }
 
@@ -904,14 +966,14 @@
             });
             
             updateTripList();
-            autoSave();
+            saveData(); // 直接调用保存函数确保数据保存
         }
 
         function removeTrip(id) {
             if (!confirm('确定删除这条行程吗？')) return;
             trips = trips.filter(t => t.id !== id);
             updateTripList();
-            autoSave();
+            saveData(); // 直接调用保存函数确保数据保存
         }
 
         function updateTripList() {
@@ -922,15 +984,15 @@
             }
             
             container.innerHTML = trips.map(trip => `
-                <div style="display: grid; grid-template-columns: 1fr 120px 1fr 80px; gap: 10px; align-items: center; padding: 10px; background: white; border-radius: 8px; margin-bottom: 10px;">
-                    <div style="font-weight: 600; color: #333;">${trip.name}</div>
-                    <div style="color: #666;">${trip.distance} 公里</div>
-                    <div style="color: #666;">
-                        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                <div style="padding: 10px; background: white; border-radius: 8px; margin-bottom: 10px;">
+                    <div style="font-weight: 600; color: #333; margin-bottom: 8px;">${trip.name}</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px;">
+                        <span style="color: #666;">${trip.distance} 公里</span>
+                        <div style="display: flex; flex-wrap: wrap; gap: 5px; flex: 1;">
                             ${trip.persons.map(p => `<span style="padding: 3px 8px; background: #f0f4ff; border-radius: 10px; font-size: 12px; border: 1px solid #d0d9ff;">${p}</span>`).join('')}
                         </div>
                     </div>
-                    <button class="btn btn-small btn-danger" onclick="removeTrip(${trip.id})">删除</button>
+                    <button class="btn btn-small btn-danger" onclick="removeTrip(${trip.id})" style="width: 100%;">删除</button>
                 </div>
             `).join('');
         }
@@ -1513,11 +1575,22 @@
                     persons = data.persons || [];
                     expenses = data.expenses || [];
                     trips = data.trips || [];
+                    // 转换旧数据格式（兼容单个person字段）
+                    trips = trips.map(trip => {
+                        if (trip.person && !trip.persons) {
+                            return {
+                                ...trip,
+                                persons: [trip.person]
+                            };
+                        }
+                        return trip;
+                    });
                     updateAll();
                     showSaveStatus('✅ 数据加载成功');
                 }
             } catch (e) {
                 showSaveStatus('❌ 数据加载失败');
+                console.error('加载数据失败:', e);
             }
         }
 
