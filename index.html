@@ -680,7 +680,7 @@
             <!-- 行程甘特图 -->
             <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 10px;">
                 <h3 style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 15px;">📊 行程时间线</h3>
-                <div id="tripGantt" style="overflow-x: auto;">
+                <div id="tripGantt" style="width: 100%;">
                     <div style="color: #999; text-align: center; padding: 30px;">添加行程后显示甘特图</div>
                 </div>
             </div>
@@ -1028,32 +1028,41 @@
                 return;
             }
             
+            // 计算总公里数
+            const totalDistance = trips.reduce((sum, trip) => sum + trip.distance, 0);
+            
             // 生成甘特图
             const colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'];
             
             const ganttHTML = `
-                <div style="min-width: 800px;">
+                <div style="width: 100%;">
                     <!-- 时间轴 -->
                     <div style="display: flex; align-items: center; margin-bottom: 10px;">
-                        <div style="width: 100px; font-size: 12px; font-weight: 600; color: #666;">行程</div>
+                        <div style="width: 80px; font-size: 11px; font-weight: 600; color: #666;">行程</div>
                         <div style="flex: 1; display: flex; border-bottom: 2px solid #e0e0e0;">
-                            ${trips.map((trip, index) => `
-                                <div style="flex: 1; text-align: center; padding: 5px; font-size: 12px; color: #666;">
-                                    ${trip.name}
-                                </div>
-                            `).join('')}
+                            ${trips.map((trip, index) => {
+                                const width = totalDistance > 0 ? (trip.distance / totalDistance) * 100 : 0;
+                                return `
+                                    <div style="flex: 0 0 ${width}%; text-align: center; padding: 3px 2px; font-size: 10px; color: #666; word-break: break-all; line-height: 1.2;">
+                                        ${trip.name}
+                                    </div>
+                                `;
+                            }).join('')}
                         </div>
                     </div>
                     
                     <!-- 公里数 -->
                     <div style="display: flex; align-items: center; margin-bottom: 15px;">
-                        <div style="width: 100px; font-size: 12px; color: #999;">公里数</div>
+                        <div style="width: 80px; font-size: 11px; color: #999;">公里数</div>
                         <div style="flex: 1; display: flex;">
-                            ${trips.map((trip, index) => `
-                                <div style="flex: 1; text-align: center; padding: 5px; font-size: 12px; color: #666; font-weight: 600;">
-                                    ${trip.distance} km
-                                </div>
-                            `).join('')}
+                            ${trips.map((trip, index) => {
+                                const width = totalDistance > 0 ? (trip.distance / totalDistance) * 100 : 0;
+                                return `
+                                    <div style="flex: 0 0 ${width}%; text-align: center; padding: 3px 2px; font-size: 10px; color: #666; font-weight: 600;">
+                                        ${trip.distance}km
+                                    </div>
+                                `;
+                            }).join('')}
                         </div>
                     </div>
                     
@@ -1062,12 +1071,13 @@
                         const personColor = colors[pIndex % colors.length];
                         return `
                             <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                                <div style="width: 100px; font-size: 13px; font-weight: 600; color: #333;">${person}</div>
+                                <div style="width: 80px; font-size: 12px; font-weight: 600; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${person}</div>
                                 <div style="flex: 1; display: flex;">
                                     ${trips.map((trip, tIndex) => {
                                         const isInTrip = trip.persons.includes(person);
+                                        const width = totalDistance > 0 ? (trip.distance / totalDistance) * 100 : 0;
                                         return `
-                                            <div style="flex: 1; height: 24px; margin: 0 2px; border-radius: 4px;
+                                            <div style="flex: 0 0 ${width}%; height: 20px; margin: 0 1px; border-radius: 3px;
                                                 ${isInTrip ? `background: linear-gradient(135deg, ${personColor} 0%, ${personColor}80 100%); border: 1px solid ${personColor}40;` : 'background: #f0f0f0; border: 1px solid #e0e0e0; opacity: 0.3;'}
                                             "></div>
                                         `;
@@ -1078,15 +1088,15 @@
                     }).join('')}
                     
                     <!-- 图例 -->
-                    <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 12px; font-weight: 600; color: #666; margin-bottom: 10px;">图例</div>
-                        <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                    <div style="margin-top: 20px; padding: 12px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 11px; font-weight: 600; color: #666; margin-bottom: 8px;">图例</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
                             ${persons.map((person, pIndex) => {
                                 const personColor = colors[pIndex % colors.length];
                                 return `
-                                    <div style="display: flex; align-items: center; gap: 5px;">
-                                        <div style="width: 16px; height: 16px; border-radius: 3px; background: ${personColor};"></div>
-                                        <span style="font-size: 12px; color: #666;">${person}</span>
+                                    <div style="display: flex; align-items: center; gap: 4px;">
+                                        <div style="width: 12px; height: 12px; border-radius: 2px; background: ${personColor};"></div>
+                                        <span style="font-size: 11px; color: #666;">${person}</span>
                                     </div>
                                 `;
                             }).join('')}
@@ -1767,7 +1777,7 @@
         function exportImage() {
             // 创建一个包含所有内容的容器
             const exportContainer = document.createElement('div');
-            exportContainer.style.maxWidth = '1200px';
+            exportContainer.style.maxWidth = '1000px';
             exportContainer.style.margin = '0 auto';
             exportContainer.style.padding = '30px';
             exportContainer.style.background = 'white';
@@ -1793,9 +1803,88 @@
                 tripTitle.style.marginBottom = '15px';
                 tripSection.appendChild(tripTitle);
                 
-                const tripList = document.createElement('div');
-                tripList.innerHTML = document.getElementById('tripGantt').innerHTML;
-                tripSection.appendChild(tripList);
+                // 为导出创建一个新的甘特图，确保它能完整显示
+                const tripGanttExport = document.createElement('div');
+                tripGanttExport.style.width = '100%';
+                tripGanttExport.style.overflowX = 'hidden';
+                
+                // 重新生成甘特图，使用适应导出容器的宽度
+                const totalDistance = trips.reduce((sum, trip) => sum + trip.distance, 0);
+                const colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'];
+                
+                const ganttHTML = `
+                    <div style="width: 100%;">
+                        <!-- 时间轴 -->
+                        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                            <div style="width: 80px; font-size: 11px; font-weight: 600; color: #666;">行程</div>
+                            <div style="flex: 1; display: flex; border-bottom: 2px solid #e0e0e0;">
+                                ${trips.map((trip, index) => {
+                                    const width = totalDistance > 0 ? (trip.distance / totalDistance) * 100 : 0;
+                                    return `
+                                        <div style="flex: 0 0 ${width}%; text-align: center; padding: 3px 2px; font-size: 10px; color: #666; word-break: break-all; line-height: 1.2;">
+                                            ${trip.name}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                        
+                        <!-- 公里数 -->
+                        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                            <div style="width: 80px; font-size: 11px; color: #999;">公里数</div>
+                            <div style="flex: 1; display: flex;">
+                                ${trips.map((trip, index) => {
+                                    const width = totalDistance > 0 ? (trip.distance / totalDistance) * 100 : 0;
+                                    return `
+                                        <div style="flex: 0 0 ${width}%; text-align: center; padding: 3px 2px; font-size: 10px; color: #666; font-weight: 600;">
+                                            ${trip.distance}km
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                        
+                        <!-- 参与人甘特图 -->
+                        ${persons.map((person, pIndex) => {
+                            const personColor = colors[pIndex % colors.length];
+                            return `
+                                <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                    <div style="width: 80px; font-size: 12px; font-weight: 600; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${person}</div>
+                                    <div style="flex: 1; display: flex;">
+                                        ${trips.map((trip, tIndex) => {
+                                            const isInTrip = trip.persons.includes(person);
+                                            const width = totalDistance > 0 ? (trip.distance / totalDistance) * 100 : 0;
+                                            return `
+                                                <div style="flex: 0 0 ${width}%; height: 20px; margin: 0 1px; border-radius: 3px;
+                                                    ${isInTrip ? `background: linear-gradient(135deg, ${personColor} 0%, ${personColor}80 100%); border: 1px solid ${personColor}40;` : 'background: #f0f0f0; border: 1px solid #e0e0e0; opacity: 0.3;'}
+                                                "></div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                        
+                        <!-- 图例 -->
+                        <div style="margin-top: 20px; padding: 12px; background: #f8f9fa; border-radius: 8px;">
+                            <div style="font-size: 11px; font-weight: 600; color: #666; margin-bottom: 8px;">图例</div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                                ${persons.map((person, pIndex) => {
+                                    const personColor = colors[pIndex % colors.length];
+                                    return `
+                                        <div style="display: flex; align-items: center; gap: 4px;">
+                                            <div style="width: 12px; height: 12px; border-radius: 2px; background: ${personColor};"></div>
+                                            <span style="font-size: 11px; color: #666;">${person}</span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                tripGanttExport.innerHTML = ganttHTML;
+                tripSection.appendChild(tripGanttExport);
                 exportContainer.appendChild(tripSection);
             }
             
@@ -1836,6 +1925,22 @@
             tableContent.innerHTML = document.querySelector('.detail-table').outerHTML;
             summarySection.appendChild(tableContent);
             
+            // 添加结算指引
+            const settlementSection = document.createElement('div');
+            settlementSection.style.marginTop = '20px';
+            
+            const settlementTitle = document.createElement('h3');
+            settlementTitle.textContent = '💰 结算指引';
+            settlementTitle.style.fontSize = '16px';
+            settlementTitle.style.color = '#333';
+            settlementTitle.style.marginBottom = '15px';
+            settlementSection.appendChild(settlementTitle);
+            
+            const settlementContent = document.createElement('div');
+            settlementContent.innerHTML = document.getElementById('settlementGuide').innerHTML;
+            settlementSection.appendChild(settlementContent);
+            
+            summarySection.appendChild(settlementSection);
             exportContainer.appendChild(summarySection);
             
             // 添加到文档
