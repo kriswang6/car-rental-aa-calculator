@@ -720,7 +720,7 @@
             <div class="expense-input-grid">
                 <div class="form-group">
                     <label>费用类型</label>
-                    <select id="expenseType">
+                    <select id="expenseType" onchange="toggleCustomExpenseName()">
                         <option value="租车费">🚗 租车费</option>
                         <option value="高速费">🛣️ 高速费</option>
                         <option value="油费/电费">⛽ 油费/电费</option>
@@ -728,7 +728,12 @@
                         <option value="餐饮">🍽️ 餐饮</option>
                         <option value="住宿">🏨 住宿</option>
                         <option value="其他">📦 其他</option>
+                        <option value="custom">⚙️ 自定义</option>
                     </select>
+                </div>
+                <div class="form-group" id="customExpenseNameGroup" style="display: none;">
+                    <label>自定义名称</label>
+                    <input type="text" id="customExpenseName" placeholder="输入费用名称（如：去程高速费）">
                 </div>
                 <div class="form-group">
                     <label>金额 (元)</label>
@@ -977,6 +982,12 @@
             
             updateTripList();
             saveData(); // 直接调用保存函数确保数据保存
+        }
+
+        function toggleCustomExpenseName() {
+            const type = document.getElementById('expenseType').value;
+            const customGroup = document.getElementById('customExpenseNameGroup');
+            customGroup.style.display = type === 'custom' ? 'block' : 'none';
         }
 
         function removeTrip(id) {
@@ -1369,6 +1380,16 @@
             const amount = parseFloat(document.getElementById('expenseAmount').value);
             const payer = document.getElementById('expensePayer').value;
             
+            let expenseType = type;
+            if (type === 'custom') {
+                const customName = document.getElementById('customExpenseName').value.trim();
+                if (!customName) {
+                    alert('请输入自定义费用名称');
+                    return;
+                }
+                expenseType = customName;
+            }
+            
             if (!amount || amount <= 0) {
                 alert('请输入金额');
                 return;
@@ -1386,7 +1407,8 @@
             
             const expense = {
                 id: Date.now(),
-                type,
+                type: expenseType,
+                originalType: type, // 保留原始类型
                 amount,
                 payer,
                 method: currentMethod,
@@ -1401,6 +1423,7 @@
             // 重置表单
             document.getElementById('expenseAmount').value = '';
             document.getElementById('expensePayer').value = '';
+            document.getElementById('customExpenseName').value = '';
             selectedPersons.clear();
             persons.forEach(p => splitValues[p] = 0);
             
